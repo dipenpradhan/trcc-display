@@ -1,0 +1,83 @@
+{
+  "$comment": "trcc-display config. All values here can be changed and reloaded (POST /reload). See README.md for the full schema.",
+
+  "usb": {
+    "vendor_id": 1046,
+    "product_id": 32769,
+    "$comment": "0x0416:0x8001 (Thermalright/Winbond HID). interface 0, OUT ep 0x02, IN ep 0x81.",
+    "interface": 0
+  },
+
+  "profile": {
+    "dir": "config/profiles",
+    "force": null,
+    "$comment": "force = filename stem (e.g. \"pa120\") to skip handshake PM detection. Leave null to auto-select by the PM byte the device reports."
+  },
+
+  "source": {
+    "kind": "prometheus",
+    "$comment": "\"prometheus\" (tile.query = PromQL) or \"sensors\" (tile.query = chip/feature[/subfeature] into `sensors -j`).",
+    "sensors_command": ["sensors", "-j"]
+  },
+
+  "prometheus": {
+    "url": "https://prometheus-orange.dipenp.com",
+    "timeout_seconds": 4
+  },
+
+  "api": {
+    "enabled": true,
+    "$comment": "set false to run fully headless (no HTTP listener) — pair with source.kind=sensors for a self-contained local driver.",
+    "bind": "0.0.0.0:9110"
+  },
+
+  "render": {
+    "refresh_seconds": 5,
+    "$comment": "how often to re-query Prometheus",
+    "rotate_seconds": 3,
+    "$comment2": "when several tiles share one slot, how long each is shown",
+    "tick_ms": 250,
+    "$comment3": "frame cadence (rotation + REST overrides apply within one tick)",
+    "temp_unit": "C",
+    "indicator_color": [120, 120, 130],
+    "$comment4": "color for always-on / unit / source-indicator LEDs"
+  },
+
+  "$tiles_note": "LF8 profile (Phantom Spirit 120 Digital EVO) slots: temp/watt/mhz/use shown at once. Put a second tile on a slot (e.g. a cpu_temp with slot=temp) to rotate CPU/GPU like the stock firmware.",
+  "tiles": [
+    {
+      "name": "gpu_temp",
+      "slot": "temp",
+      "query": "max(DCGM_FI_DEV_GPU_TEMP)",
+      "unit": "celsius",
+      "color": [0, 200, 120],
+      "warn": 75,
+      "crit": 84,
+      "indicators": ["gpu"]
+    },
+    {
+      "name": "total_power",
+      "slot": "watt",
+      "query": "sum(sensors_reading{chip=~\"corsairpsu.*\",feature=\"power total\"}) + sum(DCGM_FI_DEV_POWER_USAGE)",
+      "color": [200, 140, 0],
+      "warn": 1200,
+      "crit": 1500
+    },
+    {
+      "name": "gpu_clock",
+      "slot": "mhz",
+      "query": "max(DCGM_FI_DEV_SM_CLOCK)",
+      "color": [130, 130, 220]
+    },
+    {
+      "name": "gpu_use",
+      "slot": "use",
+      "query": "max(DCGM_FI_DEV_GPU_UTIL)",
+      "unit": "percent",
+      "color": [0, 160, 220],
+      "warn": 90,
+      "crit": 99,
+      "indicators": ["gpu"]
+    }
+  ]
+}

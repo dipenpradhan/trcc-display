@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs on new pushes to the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Build + test (stable) ──────────────────────────────────────────────
+  test:
+    name: Test (stable)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache cargo registry
+        uses: swatinem/rust-cache@v2
+        with:
+          prefix-key: stable
+
+      - name: Check format
+        run: cargo fmt --check
+
+      - name: Build (all targets)
+        run: cargo build --all-targets
+
+      - name: Run tests
+        run: cargo test
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Build release
+        run: cargo build --release
+
+  # ── Clippy (pedantic) ─────────────────────────────────────────────────
+  clippy:
+    name: Clippy (pedantic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo registry
+        uses: swatinem/rust-cache@v2
+        with:
+          prefix-key: stable-clippy
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  # ── Cross-compile (aarch64 — no test, USB needs hardware) ────────────
+  cross-aarch64:
+    name: Build aarch64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Cache cargo registry
+        uses: swatinem/rust-cache@v2
+        with:
+          prefix-key: stable-aarch64
+
+      # rusb with vendored libusb needs pkg-config + gcc for the target.
+      - name: Install cross-compilation deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            aarch64-linux-gnu \
+            pkg-config
+
+      - name: Build release (aarch64)
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --target aarch64-unknown-linux-gnu

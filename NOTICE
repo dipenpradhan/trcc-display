@@ -1,0 +1,22 @@
+trcc-display
+Copyright 2026 Dipen Pradhan
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+Attribution
+
+The USB wire protocol for Thermalright "Digital" LED/segment coolers implemented
+here (packet framing, handshake, per-style LED index maps, and wire-remap
+tables) was derived, for interoperability, from the reverse-engineering work in
+the trrc-linux project:
+
+    https://github.com/Lexonight1/thermalright-trcc-linux
+
+This is an independent, clean-room reimplementation in Rust and is not affiliated
+with or endorsed by that project.
+
+"Thermalright", "Phantom Spirit", and related product names are trademarks of
+their respective owners. This project is not affiliated with, authorized by, or
+endorsed by Thermalright. Product names are used only to describe hardware
+compatibility.

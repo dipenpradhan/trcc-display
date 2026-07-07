@@ -1,0 +1,9 @@
+# Thermalright "Digital" LED/segment coolers (Winbond HID bridge).
+# Grants non-root access so trcc-display can run without sudo.
+#
+# Install:
+#   sudo cp packaging/udev/99-thermalright-trcc.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# Adjust GROUP to one your user is in (e.g. plugdev, dialout).
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0416", ATTRS{idProduct}=="8001", MODE="0660", GROUP="plugdev", TAG+="uaccess"

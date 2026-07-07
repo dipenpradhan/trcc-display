@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>trcc-display preview</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#16161e;--border:#2a2a3a;--text:#c8c9e0;--text-dim:#6a6a8a;--accent:#7eb8da}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;-webkit-text-size-adjust:100%}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem 1rem}
+header{display:flex;align-items:center;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center}
+header h1{font-size:1.25rem;font-weight:600;color:var(--accent);letter-spacing:-.02em}
+.status{display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--text-dim)}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--text-dim);transition:background .3s}
+.status.connected .dot{background:#66e07e;box-shadow:0 0 6px #66e07e88}
+.status.disconnected .dot{background:#e06666;box-shadow:0 0 6px #e0666688}
+.meta{font-size:.75rem;color:var(--text-dim);font-variant-numeric:tabular-nums}
+
+/* ── 2x2 display grid ────────────────────────────────────── */
+.display-grid{display:grid;grid-template-columns:auto auto;gap:16px;align-items:center}
+.zone{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+
+/* Source indicator (CPU/GPU dot) */
+.source-dot{width:8px;height:8px;border-radius:50%;background:#1a1a24;transition:background .2s}
+.source-dot.on{box-shadow:0 0 4px}
+
+/* ── 7-segment digit ─────────────────────────────────────── */
+.digit{display:inline-grid;grid-template-areas:"a a a"
+                                                 "f . b"
+                                                 "g g g"
+                                                 "e . c"
+                                                 "d d d";grid-template-columns:6px 3px 6px;grid-template-rows:3px 3px 3px 3px 3px;gap:1px;height:22px;width:15px}
+.seg{background:#1a1a24;border-radius:1px;transition:background .15s}
+.seg.on{box-shadow:0 0 3px}
+.s-a{grid-area:a}.s-b{grid-area:b}.s-c{grid-area:c}
+.s-d{grid-area:d}.s-e{grid-area:e}.s-f{grid-area:f}.s-g{grid-area:g}
+
+.digits{display:inline-flex;gap:3px}
+.unit{font-size:.7rem;font-weight:600;color:var(--text-dim);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* Partial "1" bars (hundreds indicator for use zone) */
+.partial-bars{display:flex;flex-direction:column;gap:1px;margin-right:4px}
+.partial-bar{width:3px;height:10px;background:#1a1a24;border-radius:1px;transition:background .2s}
+.partial-bar.on{box-shadow:0 0 3px}
+
+@media(max-width:480px){
+  .display-grid{grid-template-columns:1fr;gap:10px}
+  .zone{padding:8px 10px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>trcc-display</h1>
+  <div class="status" id="status"><span class="dot"></span><span class="label">Connecting…</span></div>
+  <span class="meta" id="meta"></span>
+</header>
+
+<div class="display-grid" id="grid">
+  <!-- Row 1: temp | watts -->
+  <div class="zone">
+    <span class="source-dot" id="source-dot"></span>
+    <span class="digits" id="temp-digits"></span>
+    <span class="unit" id="temp-unit"></span>
+  </div>
+  <div class="zone">
+    <span class="digits" id="watt-digits"></span>
+    <span class="unit">W</span>
+  </div>
+  <!-- Row 2: mhz | % -->
+  <div class="zone">
+    <span class="digits" id="mhz-digits"></span>
+    <span class="unit">MHz</span>
+  </div>
+  <div class="zone">
+    <span class="partial-bars" id="partial-bars"></span>
+    <span class="digits" id="use-digits"></span>
+    <span class="unit" id="use-unit"></span>
+  </div>
+</div>
+
+<script>
+(() => { 'use strict';
+
+/* ── DOM refs ────────────────────────────────────────────── */
+const statusEl  = document.getElementById('status');
+const metaEl    = document.getElementById('meta');
+const sourceDot = document.getElementById('source-dot');
+const tempUnit  = document.getElementById('temp-unit');
+const useUnit   = document.getElementById('use-unit');
+
+let lastGen = 0;
+let segEls  = { temp: [], watt: [], mhz: [], use: [] };
+let partialEls = [];
+
+/* ── Slot LED index map (from ps120.json) ────────────────── */
+const SLOT_LEDS = {
+  temp: [[7,8,9,10,11,12,13],[14,15,16,17,18,19,20],[21,22,23,24,25,26,27]],
+  watt: [[28,29,30,31,32,33,34],[35,36,37,38,39,40,41],[42,43,44,45,46,47,48]],
+  mhz:  [[49,50,51,52,53,54,55],[56,57,58,59,60,61,62],[63,64,65,66,67,68,69],[70,71,72,73,74,75,76]],
+  use:  [[77,78,79,80,81,82,83],[84,85,86,87,88,89,90]],
+};
+const PARTIAL_LEDS = [91, 92];
+const CPU_IND = 0, GPU_IND = 1;
+const CELSIUS_LED = 2, FAHRENHEIT_LED = 3;
+const PERCENT_LED = 90;
+
+/* ── Create one 7-segment digit ──────────────────────────── */
+function makeDigit() {
+  const d = document.createElement('div');
+  d.className = 'digit';
+  const segs = [];
+  for (const cls of ['s-a','s-b','s-c','s-d','s-e','s-f','s-g']) {
+    const s = document.createElement('div');
+    s.className = 'seg ' + cls;
+    d.appendChild(s);
+    segs.push(s);
+  }
+  return { el: d, segs };
+}
+
+/* ── Build zone DOM ──────────────────────────────────────── */
+function buildZone(containerId, count) {
+  const container = document.getElementById(containerId);
+  const segs = [];
+  for (let i = 0; i < count; i++) {
+    const { el, segs: s } = makeDigit();
+    container.appendChild(el);
+    segs.push(s);
+  }
+  return segs;
+}
+
+/* ── Render segments from raw LED colors ─────────────────── */
+function renderZone(zoneKey, ledLists, frame) {
+  const segs = segEls[zoneKey];
+  for (let di = 0; di < ledLists.length; di++) {
+    const ledIdxs = ledLists[di];
+    const digit = segs[di];
+    if (!digit) continue;
+    for (let si = 0; si < 7; si++) {
+      const c = frame[ledIdxs[si]] || [0,0,0];
+      const lit = c[0] + c[1] + c[2] > 0;
+      digit[si].style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+      digit[si].classList.toggle('on', lit);
+      if (lit) digit[si].style.boxShadow = `0 0 4px rgb(${c[0]},${c[1]},${c[2]})80`;
+      else digit[si].style.boxShadow = 'none';
+    }
+  }
+}
+
+function renderPartial(frame) {
+  for (let i = 0; i < PARTIAL_LEDS.length && i < partialEls.length; i++) {
+    const c = frame[PARTIAL_LEDS[i]] || [0,0,0];
+    const lit = c[0] + c[1] + c[2] > 0;
+    partialEls[i].style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+    partialEls[i].classList.toggle('on', lit);
+    if (lit) partialEls[i].style.boxShadow = `0 0 4px rgb(${c[0]},${c[1]},${c[2]})80`;
+    else partialEls[i].style.boxShadow = 'none';
+  }
+}
+
+/* ── Poll loop ───────────────────────────────────────────── */
+async function poll() {
+  try {
+    const r = await fetch('/preview/frame');
+    if (r.status === 503) {
+      statusEl.className = 'status disconnected';
+      statusEl.querySelector('.label').textContent = 'Waiting…';
+      setTimeout(poll, 1000);
+      return;
+    }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d.generation === lastGen) { setTimeout(poll, 400); return; }
+    lastGen = d.generation;
+
+    for (const [key, leds] of Object.entries(SLOT_LEDS)) renderZone(key, leds, d.leds);
+    renderPartial(d.leds);
+
+    // Source indicator (CPU dot lit = CPU active)
+    const cpuOn = (d.leds[CPU_IND] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
+    const gpuOn = (d.leds[GPU_IND] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
+    const srcColor = cpuOn ? [0,200,120] : (gpuOn ? [130,130,220] : [0,0,0]);
+    sourceDot.style.background = `rgb(${srcColor[0]},${srcColor[1]},${srcColor[2]})`;
+    sourceDot.classList.toggle('on', srcColor[0] + srcColor[1] + srcColor[2] > 0);
+
+    // Unit indicators
+    const celsiusOn = (d.leds[CELSIUS_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
+    const fahrenheitOn = (d.leds[FAHRENHEIT_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
+    tempUnit.textContent = celsiusOn ? '°C' : (fahrenheitOn ? '°F' : '');
+
+    const percentOn = (d.leds[PERCENT_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
+    useUnit.textContent = percentOn ? '%' : '';
+
+    statusEl.className = 'status connected';
+    statusEl.querySelector('.label').textContent = d.profile;
+    metaEl.textContent = `gen ${lastGen} | ${d.leds.length} LEDs`;
+  } catch(e) {
+    statusEl.className = 'status disconnected';
+    statusEl.querySelector('.label').textContent = 'Disconnected';
+  }
+  setTimeout(poll, 400);
+}
+
+/* ── Init ────────────────────────────────────────────────── */
+segEls.temp  = buildZone('temp-digits',  3);
+segEls.watt  = buildZone('watt-digits',  3);
+segEls.mhz   = buildZone('mhz-digits',   4);
+segEls.use   = buildZone('use-digits',   2);
+
+const partialContainer = document.getElementById('partial-bars');
+for (let i = 0; i < 2; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'partial-bar';
+  partialContainer.appendChild(bar);
+  partialEls.push(bar);
+}
+
+poll();
+})();
+</script>
+</body>
+</html>

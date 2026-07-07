@@ -1,0 +1,58 @@
+{
+  "name": "PS120_DIGITAL",
+  "style": "ps120",
+  "comment": "Thermalright Phantom Spirit 120 Digital EVO (handshake PM 48/49). Uses the LF8 wire family: 93 LEDs, four simultaneous fields — temp (3-digit), watt (3-digit), mhz (4-digit), use (2-digit + hundreds). Always-on WATT/MHZ/BFB unit LEDs; cpu/gpu source indicators. Native firmware rotates a CPU set and a GPU set; here you assign any metric to each slot (put two tiles on a slot to rotate them).",
+  "pm_bytes": [48, 49],
+  "mask_size": 93,
+  "remap": [
+    6, 86, 87, 88, 90, 85, 84, 89,
+    79, 80, 81, 83, 78, 77, 82,
+    91, 5,
+    72, 73, 74, 76, 71, 70, 75,
+    65, 66, 67, 69, 64, 63, 68,
+    58, 59, 60, 62, 57, 56, 61,
+    51, 52, 53, 55, 50, 49, 54,
+    11, 10, 9, 13, 12, 7, 0, 8,
+    18, 17, 16, 20, 19, 14, 1, 15,
+    25, 24, 23, 27, 26, 21, 22,
+    3, 2,
+    32, 31, 30, 34, 33, 28, 29,
+    39, 38, 37, 41, 40, 35, 36,
+    46, 45, 44, 48, 47, 42, 43,
+    4, 92
+  ],
+  "always_on": [4, 5, 6],
+  "indicators": { "cpu": [0], "gpu": [1] },
+  "slots": {
+    "temp": {
+      "digits": [
+        [7, 8, 9, 10, 11, 12, 13],
+        [14, 15, 16, 17, 18, 19, 20],
+        [21, 22, 23, 24, 25, 26, 27]
+      ],
+      "unit": { "celsius": 2, "fahrenheit": 3 }
+    },
+    "watt": {
+      "digits": [
+        [28, 29, 30, 31, 32, 33, 34],
+        [35, 36, 37, 38, 39, 40, 41],
+        [42, 43, 44, 45, 46, 47, 48]
+      ]
+    },
+    "mhz": {
+      "digits": [
+        [49, 50, 51, 52, 53, 54, 55],
+        [56, 57, 58, 59, 60, 61, 62],
+        [63, 64, 65, 66, 67, 68, 69],
+        [70, 71, 72, 73, 74, 75, 76]
+      ]
+    },
+    "use": {
+      "digits": [
+        [77, 78, 79, 80, 81, 82, 83],
+        [84, 85, 86, 87, 88, 89, 90]
+      ],
+      "partial": [91, 92]
+    }
+  }
+}

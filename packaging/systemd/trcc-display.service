@@ -1,0 +1,33 @@
+# Run trcc-display as a systemd service (native, no Docker).
+#
+# Install:
+#   sudo install -Dm755 target/release/trcc-display /usr/local/bin/trcc-display
+#   sudo mkdir -p /etc/trcc-display && sudo cp -r config/* /etc/trcc-display/
+#   sudo cp packaging/systemd/trcc-display.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now trcc-display
+#
+# Requires the udev rule for non-root USB access (see packaging/udev/).
+
+[Unit]
+Description=Thermalright cooler display driver (trcc-display)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/trcc-display
+ExecStart=/usr/local/bin/trcc-display --config /etc/trcc-display/config.json run
+Restart=on-failure
+RestartSec=5
+# Persist the handshake probe cache under /var/lib/trcc-display.
+StateDirectory=trcc-display
+Environment=RUST_LOG=trcc_display=info
+Environment=TRCC_CACHE_PATH=/var/lib/trcc-display/probe_cache.json
+# Hardening (relax if USB access needs more).
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/trcc-display
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

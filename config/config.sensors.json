@@ -1,0 +1,42 @@
+{
+  "$comment": "Headless local example: no Prometheus, no REST API. Values come straight from `sensors -j`. tile.query is chip/feature[/subfeature]; omit the subfeature to take the first numeric reading of the feature.",
+
+  "usb": { "vendor_id": 1046, "product_id": 32769, "interface": 0 },
+  "profile": { "dir": "config/profiles", "force": null },
+
+  "source": {
+    "kind": "sensors",
+    "sensors_command": ["sensors", "-j"]
+  },
+
+  "api": { "enabled": false, "bind": "127.0.0.1:9110" },
+
+  "render": {
+    "refresh_seconds": 2,
+    "rotate_seconds": 3,
+    "tick_ms": 250,
+    "temp_unit": "C",
+    "indicator_color": [120, 120, 130]
+  },
+
+  "tiles": [
+    {
+      "name": "cpu_temp",
+      "slot": "cpu_temp",
+      "query": "k10temp-pci-00c3/Tctl/temp1_input",
+      "unit": "celsius",
+      "color": [0, 200, 120],
+      "warn": 80,
+      "crit": 90
+    },
+    {
+      "name": "gpu_temp",
+      "slot": "gpu_temp",
+      "query": "amdgpu-pci-1200/edge",
+      "unit": "celsius",
+      "color": [0, 200, 120],
+      "warn": 75,
+      "crit": 85
+    }
+  ]
+}

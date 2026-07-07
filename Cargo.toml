@@ -1,0 +1,78 @@
+[package]
+name = "trcc-display"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Drive Thermalright Digital cooler LED/segment displays (USB 0416:8001) from Prometheus or lm-sensors, over a REST API or headless. A clean-room reimplementation of the trrc-linux LED protocol."
+license = "Apache-2.0"
+repository = "https://github.com/dipenp/trcc-display"
+readme = "README.md"
+keywords = ["thermalright", "usb", "prometheus", "led", "hardware-monitor"]
+categories = ["hardware-support", "command-line-utilities"]
+
+[[bin]]
+name = "trcc-display"
+path = "src/main.rs"
+
+[lib]
+name = "trcc_display"
+path = "src/lib.rs"
+
+[dependencies]
+# USB (libusb) — raw HID interrupt transfers to the cooler. `vendored` compiles
+# libusb from source and links it in, so no system libusb is needed at build or
+# runtime (the binary built on clippy runs on orange as-is).
+rusb = { version = "0.9", features = ["vendored"] }
+# Async runtime + HTTP.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net"] }
+axum = "0.7"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# Config + wire (all config is JSON).
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# CLI, logging, errors.
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+thiserror = "1"
+
+[dev-dependencies]
+# In-process axum handler testing + temp dirs for cache/config tests.
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+tempfile = "3"
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+strip = true
+
+# ── Strict mode ────────────────────────────────────────────────────────────
+# Gate CI/dev with `cargo clippy --all-targets --all-features -- -D warnings`.
+# unsafe is forbidden; the full clippy suite is denied; pedantic is on as warn.
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+# Intentional numeric casts: display math clamps values into small integer /
+# byte ranges on purpose (temperatures, LED channels), so truncation/sign/
+# precision lints here are noise, not bugs.
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+cast_lossless = "allow"
+# App-level pragmatic allows.
+must_use_candidate = "allow"
+implicit_hasher = "allow"
+doc_markdown = "allow"
+needless_pass_by_value = "allow"
+uninlined_format_args = "allow"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

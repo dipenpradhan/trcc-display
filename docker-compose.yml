@@ -1,0 +1,27 @@
+# Run the driver in Docker with the cooler's USB device mapped in.
+#
+#   docker compose up -d --build
+#
+# The container needs access to the USB bus. `/dev/bus/usb` + SYS_RAWIO covers
+# the HID interrupt transfers; if the device isn't found, try `privileged: true`.
+services:
+  trcc-display:
+    build: .
+    image: trcc-display:local
+    container_name: trcc-display
+    restart: unless-stopped
+    # Map the whole USB bus (simplest) — or scope to the specific device node.
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    cap_add:
+      - SYS_RAWIO
+    volumes:
+      # Persist the handshake probe cache (the LED firmware only answers the
+      # handshake once per power cycle).
+      - ./state:/app/state
+      # Optional: mount your own config/profiles without rebuilding.
+      - ./config:/app/config:ro
+    ports:
+      - "9110:9110" # REST API (omit if api.enabled=false)
+    # For a fully local, no-network setup use the sensors config instead:
+    # command: ["--config", "/app/config/config.sensors.json", "run"]
