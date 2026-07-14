@@ -319,7 +319,7 @@ async fn preview_serves_html() {
     let (status, body) = send_preview(
         st,
         Request::builder()
-            .uri("/preview")
+            .uri("/")
             .body(Body::empty())
             .unwrap(),
     )
@@ -334,7 +334,7 @@ async fn preview_frame_requires_frame() {
     let (status, _) = send_preview(
         st,
         Request::builder()
-            .uri("/preview/frame")
+            .uri("/frame")
             .body(Body::empty())
             .unwrap(),
     )
@@ -352,13 +352,14 @@ async fn preview_frame_returns_json() {
             generation: 42,
             profile: "AX120_DIGITAL".into(),
             leds: vec![[255, 0, 0]; 30],
+            values: std::collections::HashMap::new(),
         });
     }
 
     let (status, body) = send_preview(
         st,
         Request::builder()
-            .uri("/preview/frame")
+            .uri("/frame")
             .body(Body::empty())
             .unwrap(),
     )
@@ -380,6 +381,7 @@ async fn preview_frame_updates_on_change() {
             generation: 1,
             profile: "AX120_DIGITAL".into(),
             leds: vec![[255, 0, 0]; 30],
+            values: std::collections::HashMap::new(),
         });
     }
 
@@ -387,7 +389,7 @@ async fn preview_frame_updates_on_change() {
     let (status, body) = send_preview(
         st.clone(),
         Request::builder()
-            .uri("/preview/frame")
+            .uri("/frame")
             .body(Body::empty())
             .unwrap(),
     )
@@ -403,6 +405,7 @@ async fn preview_frame_updates_on_change() {
             generation: 2,
             profile: "AX120_DIGITAL".into(),
             leds: vec![[0, 255, 0]; 30],
+            values: std::collections::HashMap::new(),
         });
     }
 
@@ -410,7 +413,7 @@ async fn preview_frame_updates_on_change() {
     let (status, body) = send_preview(
         st.clone(),
         Request::builder()
-            .uri("/preview/frame")
+            .uri("/frame")
             .body(Body::empty())
             .unwrap(),
     )
@@ -427,10 +430,310 @@ async fn preview_not_available_when_disabled() {
     let (status, _) = send(
         st,
         Request::builder()
-            .uri("/preview")
+            .uri("/")
             .body(Body::empty())
             .unwrap(),
     )
     .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+// ── UI DOM Tests ──────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn ui_html_structure() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify key DOM elements exist
+    assert!(body.contains("<!DOCTYPE html>"), "should be valid HTML");
+    assert!(body.contains("id=\"temp-digits\""), "temp digits container missing");
+    assert!(body.contains("id=\"watt-digits\""), "watt digits container missing");
+    assert!(body.contains("id=\"mhz-digits\""), "mhz digits container missing");
+    assert!(body.contains("id=\"use-digits\""), "use digits container missing");
+    assert!(body.contains("id=\"partial-bars\""), "partial hundreds bars missing");
+    assert!(body.contains("id=\"source-dot\""), "source indicator missing");
+    assert!(body.contains("id=\"temp-unit\""), "temp unit indicator missing");
+    assert!(body.contains("id=\"use-unit\""), "use unit indicator missing");
+}
+
+#[tokio::test]
+async fn ui_css_classes() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify CSS classes for 7-segment rendering
+    assert!(body.contains(".digit"), "digit class missing");
+    assert!(body.contains(".seg"), "segment class missing");
+    assert!(body.contains(".s-a"), "segment a class missing");
+    assert!(body.contains(".s-b"), "segment b class missing");
+    assert!(body.contains(".s-c"), "segment c class missing");
+    assert!(body.contains(".s-d"), "segment d class missing");
+    assert!(body.contains(".s-e"), "segment e class missing");
+    assert!(body.contains(".s-f"), "segment f class missing");
+    assert!(body.contains(".s-g"), "segment g class missing");
+}
+
+#[tokio::test]
+async fn ui_javascript_polling() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify JavaScript polling logic
+    assert!(body.contains("/frame"), "frame endpoint missing in JS");
+    assert!(body.contains("setTimeout(poll"), "polling interval missing");
+    assert!(body.contains("generation"), "generation tracking missing");
+    assert!(body.contains("leds"), "leds data missing in JS");
+    assert!(body.contains("rgb("), "color rendering missing");
+}
+
+#[tokio::test]
+async fn ui_zones_match_profile() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify zone structure matches PS120 profile
+    assert!(body.contains("TEMP"), "temp zone label missing");
+    assert!(body.contains("WATT"), "watt zone label missing");
+    assert!(body.contains("MHZ"), "mhz zone label missing");
+    assert!(body.contains("USE"), "use zone label missing");
+}
+
+#[tokio::test]
+async fn ui_status_indicators() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify status and connection indicators
+    assert!(body.contains("id=\"status\""), "status container missing");
+    assert!(body.contains("id=\"meta\""), "meta info container missing");
+    assert!(body.contains("class=\"dot\""), "connection dot missing");
+}
+
+#[tokio::test]
+async fn ui_responsive_layout() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify responsive CSS
+    assert!(body.contains("@media(max-width:700px)"), "mobile responsive styles missing");
+    assert!(body.contains("grid-template-columns:1fr"), "grid layout missing");
+}
+
+#[tokio::test]
+async fn ui_frame_endpoint_json_format() {
+    let (st, _f) = state_with_preview();
+    // Set a frame
+    {
+        let mut shared = st.shared.lock().unwrap();
+        shared.preview_frame = Some(trcc_display::state::PreviewFrame {
+            generation: 100,
+            profile: "PS120_DIGITAL".into(),
+            leds: vec![[255, 128, 0]; 93],
+            values: std::collections::HashMap::new(),
+        });
+    }
+
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/frame")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    let frame: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert!(frame["generation"].is_number(), "generation should be a number");
+    assert!(frame["profile"].is_string(), "profile should be a string");
+    assert!(frame["leds"].is_array(), "leds should be an array");
+    assert_eq!(frame["leds"].as_array().unwrap().len(), 93, "leds length should match profile");
+}
+
+#[tokio::test]
+async fn ui_frame_updates_propagate() {
+    let (st, _f) = state_with_preview();
+    // Set frame 1
+    {
+        let mut shared = st.shared.lock().unwrap();
+        shared.preview_frame = Some(trcc_display::state::PreviewFrame {
+            generation: 1,
+            profile: "PS120_DIGITAL".into(),
+            leds: vec![[255, 0, 0]; 93],
+            values: std::collections::HashMap::new(),
+        });
+    }
+    let (status, body1) = send_preview(
+        st.clone(),
+        Request::builder()
+            .uri("/frame")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let frame1: serde_json::Value = serde_json::from_str(&body1).unwrap();
+    assert_eq!(frame1["generation"], 1);
+
+    // Update to frame 2
+    {
+        let mut shared = st.shared.lock().unwrap();
+        shared.preview_frame = Some(trcc_display::state::PreviewFrame {
+            generation: 2,
+            profile: "PS120_DIGITAL".into(),
+            leds: vec![[0, 255, 0]; 93],
+            values: std::collections::HashMap::new(),
+        });
+    }
+    let (status, body2) = send_preview(
+        st.clone(),
+        Request::builder()
+            .uri("/frame")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let frame2: serde_json::Value = serde_json::from_str(&body2).unwrap();
+    assert_eq!(frame2["generation"], 2);
+
+    // Verify the frame data changed
+    assert!(frame1["leds"] != frame2["leds"], "frame data should be different");
+}
+
+#[tokio::test]
+async fn ui_partial_hundreds_display() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify partial hundreds display for use zone
+    assert!(body.contains("partial-bars"), "partial bars container missing");
+    assert!(body.contains("partial-bar"), "partial bar elements missing");
+    assert!(body.contains("classList.toggle('on'"), "on/off state toggle JS missing");
+}
+
+#[tokio::test]
+async fn ui_source_indicator_colors() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify source indicator color logic
+    assert!(body.contains("rgb(${srcColor[0]},${srcColor[1]},${srcColor[2]})"), "source color rendering missing");
+    assert!(body.contains("cpuOn"), "CPU detection missing");
+    assert!(body.contains("gpuOn"), "GPU detection missing");
+}
+
+#[tokio::test]
+async fn ui_unit_indicators() {
+    let (st, _f) = state_with_preview();
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Verify unit indicator logic
+    assert!(body.contains("°C"), "Celsius unit missing");
+    assert!(body.contains("°F"), "Fahrenheit unit missing");
+    assert!(body.contains("%"), "Percent unit missing");
+    assert!(body.contains("celsiusOn"), "celsius detection missing");
+    assert!(body.contains("fahrenheitOn"), "fahrenheit detection missing");
+    assert!(body.contains("percentOn"), "percent detection missing");
+}
+
+#[tokio::test]
+async fn ui_led_count_matches_profile() {
+    let (st, _f) = state_with_preview();
+    // Set frame with specific LED count
+    {
+        let mut shared = st.shared.lock().unwrap();
+        shared.preview_frame = Some(trcc_display::state::PreviewFrame {
+            generation: 1,
+            profile: "PS120_DIGITAL".into(),
+            leds: vec![[0, 0, 0]; 93],
+            values: std::collections::HashMap::new(),
+        });
+    }
+
+    let (status, body) = send_preview(
+        st,
+        Request::builder()
+            .uri("/frame")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    let frame: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(frame["leds"].as_array().unwrap().len(), 93, "should match PS120 LED count");
 }

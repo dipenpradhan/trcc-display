@@ -51,6 +51,26 @@ pub struct SlotValue {
     pub indicators: Vec<String>,
 }
 
+/// Build a frame in **logical** LED order (before device remap). Use this
+/// for the web preview where LED indices come from the profile definition.
+///
+/// # Arguments
+///
+/// * `profile` — the active device profile.
+/// * `slots` — per-slot values to render.
+/// * `indicator_color` — color for always-on/unit/indicator LEDs.
+///
+/// # Returns
+///
+/// A vector of RGB colors in logical LED order (matches profile `slots` indices).
+pub fn frame_logical(
+    profile: &Profile,
+    slots: &HashMap<String, SlotValue>,
+    indicator_color: Rgb,
+) -> Vec<Rgb> {
+    render_slots(profile, slots, indicator_color)
+}
+
 /// Build a full physical-order frame for `profile` from the per-slot values.
 ///
 /// `indicator_color` lights the always-on / unit / indicator LEDs so they read
@@ -66,6 +86,14 @@ pub struct SlotValue {
 ///
 /// A vector of RGB colors in physical LED order (ready for `protocol::data_packet`).
 pub fn frame(
+    profile: &Profile,
+    slots: &HashMap<String, SlotValue>,
+    indicator_color: Rgb,
+) -> Vec<Rgb> {
+    profile.to_physical(&render_slots(profile, slots, indicator_color))
+}
+
+fn render_slots(
     profile: &Profile,
     slots: &HashMap<String, SlotValue>,
     indicator_color: Rgb,
@@ -92,7 +120,7 @@ pub fn frame(
         }
     }
 
-    profile.to_physical(&logical)
+    logical
 }
 
 fn draw_slot(slot: &Slot, sv: &SlotValue, indicator_color: Rgb, out: &mut [Rgb]) {

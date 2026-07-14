@@ -87,7 +87,7 @@ pub fn router(state: AppState, preview_enabled: bool) -> Router {
         .route("/display/clear", post(clear))
         .with_state(state.clone());
     if preview_enabled {
-        r = r.nest("/preview", preview::router(state));
+        r = r.nest("/", preview::router(state));
     }
     r
 }

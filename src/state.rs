@@ -67,6 +67,9 @@ pub struct Shared {
     pub last_frame_at: Option<Instant>,
     /// Cumulative count of frames successfully sent.
     pub frames_sent: u64,
+    /// Monotonic counter incremented each render cycle, regardless of USB state.
+    /// Used by the web preview to detect frame changes.
+    pub preview_generation: u64,
     /// Snapshot of the latest rendered frame, for the web preview.
     pub preview_frame: Option<PreviewFrame>,
 }
@@ -84,6 +87,8 @@ pub struct PreviewFrame {
     pub profile: String,
     /// Physical-order RGB colors, one per LED.
     pub leds: Vec<[u8; 3]>,
+    /// Raw metric values per zone, for display as plain text.
+    pub values: HashMap<String, f64>,
 }
 
 impl Shared {
@@ -112,6 +117,7 @@ mod tests {
         assert!(s.last_error.is_none());
         assert!(s.last_frame_at.is_none());
         assert_eq!(s.frames_sent, 0);
+        assert_eq!(s.preview_generation, 0);
         assert!(s.preview_frame.is_none());
     }
 

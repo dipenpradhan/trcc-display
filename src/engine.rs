@@ -138,14 +138,26 @@ pub async fn run(
                     let mut s = lock_arc(&shared);
                     s.frames_sent += 1;
                     s.last_frame_at = Some(Instant::now());
+                    s.preview_generation = s.preview_generation.saturating_add(1);
                     s.preview_frame = preview;
                 }
                 Err(TrySendError::Full(_)) => {
                     tracing::trace!("usb worker busy; dropped a frame");
+                    // Still update preview
+                    if let Some(p) = preview {
+                        let mut s = lock_arc(&shared);
+                        s.preview_generation = s.preview_generation.saturating_add(1);
+                        s.preview_frame = Some(p);
+                    }
                 }
                 Err(TrySendError::Disconnected(_)) => {
-                    tracing::info!("usb worker gone; engine loop exiting");
-                    return;
+                    // USB worker gone but keep rendering for preview
+                    tracing::info!("usb worker gone; running without USB (preview only)");
+                    if let Some(p) = preview {
+                        let mut s = lock_arc(&shared);
+                        s.preview_generation = s.preview_generation.saturating_add(1);
+                        s.preview_frame = Some(p);
+                    }
                 }
             }
         }
@@ -286,6 +298,7 @@ fn build_preview_frame(
             generation: s.frames_sent,
             profile: s.profile_name.clone().unwrap_or_default(),
             leds: physical.into_iter().map(|c| [c.0, c.1, c.2]).collect(),
+            values: HashMap::new(),
         });
     }
 
@@ -313,18 +326,22 @@ fn build_preview_frame(
             },
         );
     }
-    let frame_gen = s.frames_sent;
+    let frame_gen = s.preview_generation + 1;
     let name = s.profile_name.clone();
     drop(s);
 
     if slots.is_empty() {
         return None;
     }
-    let frame = render::frame(profile, &slots, indicator);
+    let frame = render::frame_logical(profile, &slots, indicator);
+    let values: HashMap<String, f64> = slots.iter()
+        .map(|(k, sv)| (k.clone(), sv.value as f64))
+        .collect();
     Some(PreviewFrame {
         generation: frame_gen,
         profile: name.unwrap_or_default(),
         leds: frame.into_iter().map(|c| [c.0, c.1, c.2]).collect(),
+        values,
     })
 }
 

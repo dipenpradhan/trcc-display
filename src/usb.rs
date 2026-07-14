@@ -142,7 +142,29 @@ pub fn open_session(cfg: &UsbConfig) -> Result<(DeviceHandle<GlobalContext>, Han
 /// * `shared` — shared runtime state.
 /// * `rx` — channel to receive packets from the engine.
 pub fn run(cfg: UsbConfig, shared: Arc<Mutex<Shared>>, rx: Receiver<Vec<u8>>) {
+    // Guard against rusb panicking on libusb_init() when USB hardware is
+    // unavailable (containers, simulators, no USB bus).
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        rusb::devices().map(|_| true).is_err()
+    })).is_err() {
+        tracing::warn!("USB subsystem unavailable (no USB hardware); USB worker disabled");
+        return;
+    }
+
     loop {
+        // Re-check on each iteration in case USB became unavailable later.
+        let devices_ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            rusb::devices().is_ok()
+        }));
+
+        match devices_ok {
+            Ok(true) => {} // USB OK, proceed
+            _ => {
+                tracing::warn!("USB subsystem gone; USB worker exiting");
+                return;
+            }
+        }
+
         match connect(&cfg, &shared) {
             Ok(mut handle) => {
                 tracing::info!("device connected");
