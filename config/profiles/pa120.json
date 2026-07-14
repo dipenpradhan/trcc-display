@@ -1,5 +1,6 @@
 {
   "name": "PA120_DIGITAL",
+  "$comment": "LED index maps and wire-remap tables derived from https://github.com/Lexonight1/thermalright-trcc-linux",
   "style": "pa120",
   "comment": "84 LEDs showing FOUR values at once: cpu_temp (3 digits), cpu_use (2 digits + hundreds), gpu_temp (3 digits), gpu_use (2 digits + hundreds). Uses the PA120 wire-remap table. Point one tile at each slot in config.json.",
   "pm_bytes": [16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31],

@@ -56,7 +56,7 @@ struct FrameResponse {
 async fn get_frame(State(st): State<AppState>) -> Result<Json<FrameResponse>, StatusCode> {
     let s = lock_arc(&st.shared);
     match &s.preview_frame {
-        Some(f) => Ok(axum::Json(FrameResponse {
+        Some(f) => Ok(Json(FrameResponse {
             generation: f.generation,
             profile: f.profile.clone(),
             leds: f.leds.clone(),

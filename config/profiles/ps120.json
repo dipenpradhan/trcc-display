@@ -1,7 +1,8 @@
 {
   "name": "PS120_DIGITAL",
+  "$comment": "LED index maps and wire-remap tables derived from https://github.com/Lexonight1/thermalright-trcc-linux",
   "style": "ps120",
-  "comment": "Thermalright Phantom Spirit 120 Digital EVO (handshake PM 48/49). Uses the LF8 wire family: 93 LEDs, four simultaneous fields — temp (3-digit), watt (3-digit), mhz (4-digit), use (2-digit + hundreds). Always-on WATT/MHZ/BFB unit LEDs; cpu/gpu source indicators. Native firmware rotates a CPU set and a GPU set; here you assign any metric to each slot (put two tiles on a slot to rotate them).",
+  "comment": "Phantom Spirit 120 Digital EVO (handshake PM 48/49). Uses the LF8 wire family: 93 LEDs, four simultaneous fields — temp (3-digit), watt (3-digit), mhz (4-digit), use (2-digit + hundreds). Always-on WATT/MHZ/BFB unit LEDs; cpu/gpu source indicators. Native firmware rotates a CPU set and a GPU set; here you assign any metric to each slot (put two tiles on a slot to rotate them).",
   "pm_bytes": [48, 49],
   "mask_size": 93,
   "remap": [

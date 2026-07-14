@@ -3,16 +3,20 @@
 //!
 //! # Design
 //!
-//! The [`Source`] enum wraps either a [`Prometheus`][crate::prometheus::PromClient]
-//! or a [`Sensors`][crate::sensors::SensorsSource] backend. The engine never
-//! needs to know which one is active — it just calls `fetch` with a list of
-//! tiles and gets back [`Fetched`] results.
+//! The [`Source`] enum wraps either a [`Prometheus`][crate::prometheus::PromClient],
+//! a [`Sensors`][crate::sensors::SensorsSource], or a [`Simulator`] for testing.
+//! The engine never needs to know which one is active — it just calls `fetch`
+//! with a list of tiles and gets back [`Fetched`] results.
 //!
 //! # Error handling
 //!
 //! `fetch` never errors as a whole — per-tile failures are reported in each
 //! [`Fetched`], so one bad query or a momentarily-unreachable Prometheus
 //! doesn't blank the whole display.
+
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use crate::config::Config;
 use crate::prometheus::PromClient;
@@ -38,19 +42,60 @@ pub struct Fetched {
 ///
 /// * `Prometheus` — instant PromQL queries against a Prometheus server.
 /// * `Sensors` — `sensors -j` (lm-sensors) JSON tree selection.
+/// * `Simulator` — generates fake but realistic values for testing.
 #[derive(Clone, Debug)]
 pub enum Source {
     /// Prometheus backend.
     Prometheus(PromClient),
     /// lm-sensors backend.
     Sensors(SensorsSource),
+    /// Simulator — generates fake values for testing without real hardware.
+    Simulator(Arc<SimulatorState>),
+}
+
+/// Shared state for the simulator.
+///
+/// Each tile gets a deterministic pseudo-random walk from a fixed seed,
+/// so values change smoothly and reproducibly.
+#[derive(Debug)]
+struct SimulatorState {
+    /// Monotonic step counter, incremented each fetch.
+    step: AtomicU64,
+    /// When the simulator was created.
+    start: Instant,
+}
+
+impl SimulatorState {
+    fn new() -> Self {
+        Self {
+            step: AtomicU64::new(0),
+            start: Instant::now(),
+        }
+    }
+
+    /// Generate a value for a tile based on its name.
+    ///
+    /// Uses a deterministic hash of the tile name + step to produce
+    /// smooth, realistic-looking values.
+    fn value_for(&self, tile_name: &str) -> f64 {
+        let step = self.step.load(Ordering::Relaxed);
+        let elapsed = self.start.elapsed();
+        // Seed from tile name hash for deterministic but varied values.
+        let seed = tile_name.as_bytes().iter().fold(0u64, |h, b| h.wrapping_mul(31) + *b as u64);
+        // Smooth walk: base + sine component (varies over time) + step noise.
+        let t = elapsed.as_secs_f64();
+        let base = (seed % 100) as f64;
+        let oscillation = ((t * 0.1 + seed as f64 * 0.01).sin() * 20.0).abs();
+        let jitter = ((step.wrapping_mul(7) + seed).wrapping_mul(13) % 100) as f64 * 0.1;
+        (base + oscillation + jitter).min(199.0)
+    }
 }
 
 impl Source {
     /// Build the source named by `config.source.kind`.
     ///
     /// Supported kinds: `"prometheus"`, `"prom"`, `"sensors"`, `"lm-sensors"`,
-    /// `"lmsensors"`.
+    /// `"lmsensors"`, `"simulator"`, `"sim"`.
     ///
     /// # Errors
     ///
@@ -65,19 +110,24 @@ impl Source {
             "sensors" | "lm-sensors" | "lmsensors" => Ok(Self::Sensors(SensorsSource::new(
                 cfg.source.sensors_command.clone(),
             )?)),
+            "simulator" | "sim" => {
+                tracing::info!("using simulator source (fake values for testing)");
+                Ok(Self::Simulator(Arc::new(SimulatorState::new())))
+            }
             other => anyhow::bail!(
-                "unknown source.kind {other:?} (expected \"prometheus\" or \"sensors\")"
+                "unknown source.kind {other:?} (expected \"prometheus\", \"sensors\", or \"simulator\")"
             ),
         }
     }
 
     /// Short label for status output.
     ///
-    /// Returns `"prometheus"` or `"sensors"`.
+    /// Returns `"prometheus"`, `"sensors"`, or `"simulator"`.
     pub fn kind(&self) -> &'static str {
         match self {
             Self::Prometheus(_) => "prometheus",
             Self::Sensors(_) => "sensors",
+            Self::Simulator(_) => "simulator",
         }
     }
 
@@ -122,6 +172,18 @@ impl Source {
                     })
                     .collect()
             }
+            Self::Simulator(state) => {
+                // Increment step and generate a value for each tile.
+                let step = state.step.fetch_add(1, Ordering::Relaxed);
+                let _ = step; // used internally for deterministic sequence
+                tiles
+                    .iter()
+                    .map(|t| Fetched {
+                        tile: t.name.clone(),
+                        value: Ok(Some(state.value_for(&t.name))),
+                    })
+                    .collect()
+            }
         }
     }
 }
@@ -147,6 +209,49 @@ mod tests {
     fn source_kind_prometheus() {
         let src = Source::Sensors(SensorsSource::new(vec!["sensors".into(), "-j".into()]).unwrap());
         assert_eq!(src.kind(), "sensors");
+    }
+
+    #[test]
+    fn source_kind_simulator() {
+        let src = Source::Simulator(Arc::new(SimulatorState::new()));
+        assert_eq!(src.kind(), "simulator");
+    }
+
+    // ── Simulator ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn simulator_generates_values() {
+        let src = Source::Simulator(Arc::new(SimulatorState::new()));
+        let tiles = vec![
+            Tile {
+                name: "cpu_temp".into(),
+                slot: "temp".into(),
+                query: "".into(),
+                unit: Some("celsius".into()),
+                color: [0, 200, 120],
+                warn: Some(75.0),
+                crit: Some(85.0),
+                indicators: vec![],
+            },
+            Tile {
+                name: "gpu_temp".into(),
+                slot: "temp".into(),
+                query: "".into(),
+                unit: Some("celsius".into()),
+                color: [130, 130, 220],
+                warn: Some(70.0),
+                crit: Some(80.0),
+                indicators: vec![],
+            },
+        ];
+        let results = tokio::runtime::Runtime::new().unwrap().block_on(src.fetch(&tiles));
+        assert_eq!(results.len(), 2);
+        // All tiles should get Ok(Some(_)) values.
+        for r in &results {
+            assert!(r.value.as_ref().unwrap().is_some(), "tile {} should have a value", r.tile);
+        }
+        // Different tiles should have different values (deterministic hash).
+        assert_ne!(results[0].value, results[1].value);
     }
 
     // ── Source::from_config ─────────────────────────────────────────────────

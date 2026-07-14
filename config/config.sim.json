@@ -1,0 +1,43 @@
+{
+    "$comment": "Test config with simulator source and web preview",
+    "usb": { "vendor_id": 1046, "product_id": 32769 },
+    "profile": { "dir": "config/profiles", "force": "ps120" },
+    "source": { "kind": "simulator" },
+    "api": { "enabled": true, "bind": "0.0.0.0:9110", "preview_enabled": true },
+    "render": { "refresh_seconds": 2, "tick_ms": 250, "temp_unit": "C" },
+    "tiles": [
+        {
+            "name": "cpu_temp",
+            "slot": "temp",
+            "query": "",
+            "unit": "celsius",
+            "color": [0, 200, 120],
+            "warn": 75,
+            "crit": 85
+        },
+        {
+            "name": "cpu_watt",
+            "slot": "watt",
+            "query": "",
+            "unit": "percent",
+            "color": [255, 170, 0],
+            "warn": 70,
+            "crit": 90
+        },
+        {
+            "name": "cpu_mhz",
+            "slot": "mhz",
+            "query": "",
+            "color": [130, 130, 220]
+        },
+        {
+            "name": "cpu_use",
+            "slot": "use",
+            "query": "",
+            "unit": "percent",
+            "color": [0, 200, 120],
+            "warn": 80,
+            "crit": 95
+        }
+    ]
+}

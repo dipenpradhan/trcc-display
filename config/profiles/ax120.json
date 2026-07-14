@@ -1,5 +1,6 @@
 {
   "name": "AX120_DIGITAL",
+  "$comment": "LED index maps and wire-remap tables derived from https://github.com/Lexonight1/thermalright-trcc-linux",
   "style": "ax120",
   "comment": "30 LEDs, one 3-digit 7-segment field plus unit + source indicators. Firmware default cycles CPU/GPU temp+load; here the render engine rotates whatever tiles you point at slot 'main'. No wire remap (identity).",
   "pm_bytes": [1, 2, 3],
