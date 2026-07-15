@@ -4,3 +4,4 @@
 # Runtime state (handshake probe cache).
 /state/
 .DS_Store
+.pi/
