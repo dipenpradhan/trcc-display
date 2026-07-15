@@ -160,6 +160,7 @@ function buildZone(containerId, count) {
 
 function renderZone(zoneKey, ledLists, frame) {
   const segs = segEls[zoneKey];
+  const isMhz = zoneKey === 'mhz';
   for (let di = 0; di < ledLists.length; di++) {
     const ledIdxs = ledLists[di];
     const digit = segs[di];
@@ -167,7 +168,12 @@ function renderZone(zoneKey, ledLists, frame) {
     for (let si = 0; si < 7; si++) {
       const c = frame[ledIdxs[si]] || [0,0,0];
       const lit = c[0] + c[1] + c[2] > 0;
-      digit[si].style.background = lit ? `rgb(${c[0]},${c[1]},${c[2]})` : 'rgba(50,50,70,1)';
+      
+      if (isMhz && lit) {
+        digit[si].style.background = 'rgba(255, 255, 255, 1)';
+      } else {
+        digit[si].style.background = lit ? `rgb(${c[0]},${c[1]},${c[2]})` : 'rgba(50,50,70,1)';
+      }
       digit[si].classList.toggle('on', lit);
     }
   }
@@ -205,7 +211,7 @@ async function poll() {
     // Source label logic
     if (cpuOn) {
       sourceLabel.textContent = 'CPU';
-      sourceLabel.style.color = '#00ffff';
+      sourceLabel.style.color = '#ffffff';
     } else if (gpuOn) {
       sourceLabel.textContent = 'GPU';
       sourceLabel.style.color = '#ffffff';
@@ -223,6 +229,10 @@ async function poll() {
     document.getElementById('watt-value').textContent = wattVal != null ? wattVal.toFixed(1) : '';
     document.getElementById('mhz-value').textContent = mhzVal != null ? mhzVal.toFixed(0) : '';
     document.getElementById('use-value').textContent = useVal != null ? useVal.toFixed(1) : '';
+
+    // Fix MHz unit color to white
+    const mhzUnit = document.querySelector('#mhz-digits').nextElementSibling;
+    if (mhzUnit) mhzUnit.style.color = '#ffffff';
 
     const celsiusOn = (d.leds[CELSIUS_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
     const fahrenheitOn = (d.leds[FAHRENHEIT_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
