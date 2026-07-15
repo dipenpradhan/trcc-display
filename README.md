@@ -18,7 +18,10 @@ the binary). Values come from **Prometheus** or the local **`sensors -j`**
 
 ## Features
 
-![Live Web Preview Dashboard](docs/assets/preview-dashboard.gif)
+<p align="center">
+  <img src="docs/assets/preview-dashboard.gif" width="45%" alt="Web Preview Dashboard" />
+  <img src="display-small.gif" width="45%" alt="Small Display Preview" />
+</p>
 
 - **Two metric sources** — Prometheus (PromQL) or `sensors -j` (fully local, no
   network). Selectable in config.
