@@ -18,6 +18,8 @@ the binary). Values come from **Prometheus** or the local **`sensors -j`**
 
 ## Features
 
+![Live Web Preview Dashboard](docs/assets/preview-dashboard.gif)
+
 - **Two metric sources** — Prometheus (PromQL) or `sensors -j` (fully local, no
   network). Selectable in config.
 - **Headless or REST** — run as a silent daemon, or expose an HTTP control

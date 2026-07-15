@@ -21,8 +21,11 @@ header h1{font-size:1.5rem;font-weight:700;color:var(--accent);letter-spacing:-.
 
 /* ── 2x2 display grid ─────────────────────────────────────── */
 .display-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:720px;width:100%}
-.zone{position:relative;display:flex;align-items:center;justify-content:flex-end;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;flex-wrap:wrap}
-.raw-value{font-size:.85rem;font-weight:600;color:var(--text);margin-left:8px;font-variant-numeric:tabular-nums;min-width:60px;text-align:right}
+.zone{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;flex-wrap:nowrap}
+
+/* Content Grouping */
+.data-group{display:flex;align-items:center;gap:8px;flex-grow:1;justify-content:flex-end}
+.raw-value{font-size:.85rem;font-weight:600;color:var(--text);min-width:65px;text-align:right;font-variant-numeric:tabular-nums}
 
 /* ── 7-segment digit ──────────────────────────────────────── */
 .digit{position:relative;width:48px;height:80px;display:inline-block;margin:0 2px}
@@ -41,14 +44,14 @@ header h1{font-size:1.5rem;font-weight:700;color:var(--accent);letter-spacing:-.
 .s-b,.s-c{right:6px}
 
 .digits{display:inline-flex;gap:0}
-.unit{font-size:1rem;font-weight:700;color:var(--text);min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+.unit{font-size:1.1rem;font-weight:700;color:var(--text);min-width:42px;text-align:left;font-variant-numeric:tabular-nums}
 
 /* Partial "1" bars (hundreds indicator for use zone) */
 .partial-bars{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;height:80px;margin-right:8px}
 .partial-bar{width:6px;height:32px;background:rgba(50,50,70,1);border-radius:3px;transition:background .2s}
 
 /* Source indicator (CPU/GPU text) */
-.source-label{position:absolute;top:8px;left:12px;font-size:0.75rem;font-weight:800;color:rgba(50,50,70,1);text-transform:uppercase;letter-spacing:0.05em;transition:color .2s}
+.source-label{position:absolute;top:10px;left:12px;font-size:0.75rem;font-weight:800;color:#ffffff;text-transform:uppercase;letter-spacing:0.05em;transition:color .2s}
 
 @media(max-width:700px){
   .display-grid{grid-template-columns:1fr;gap:16px}
@@ -76,26 +79,34 @@ header h1{font-size:1.5rem;font-weight:700;color:var(--accent);letter-spacing:-.
 <div class="display-grid" id="grid">
   <!-- Row 1: temp | watts -->
   <div class="zone">
-    <span class="source-label" id="source-label"></span>
-    <span class="digits" id="temp-digits"></span>
-    <span class="unit" id="temp-unit"></span>
+    <span class="source-label" id="source-label">CPU</span>
+    <div class="data-group">
+      <span class="digits" id="temp-digits"></span>
+      <span class="unit" id="temp-unit"></span>
+    </div>
     <span class="raw-value" id="temp-value"></span>
   </div>
   <div class="zone">
-    <span class="digits" id="watt-digits"></span>
-    <span class="unit">W</span>
+    <div class="data-group">
+      <span class="digits" id="watt-digits"></span>
+      <span class="unit">W</span>
+    </div>
     <span class="raw-value" id="watt-value"></span>
   </div>
   <!-- Row 2: mhz | % -->
   <div class="zone">
-    <span class="digits" id="mhz-digits"></span>
-    <span class="unit">MHz</span>
+    <div class="data-group">
+      <span class="digits" id="mhz-digits"></span>
+      <span class="unit">MHz</span>
+    </div>
     <span class="raw-value" id="mhz-value"></span>
   </div>
   <div class="zone">
-    <span class="partial-bars" id="partial-bars"></span>
-    <span class="digits" id="use-digits"></span>
-    <span class="unit" id="use-unit"></span>
+    <div class="data-group">
+      <span class="partial-bars" id="partial-bars"></span>
+      <span class="digits" id="use-digits"></span>
+      <span class="unit" id="use-unit"></span>
+    </div>
     <span class="raw-value" id="use-value"></span>
   </div>
 </div>
@@ -122,7 +133,6 @@ const SLOT_LEDS = {
 const PARTIAL_LEDS = [91, 92];
 const CPU_IND = 0, GPU_IND = 1;
 const CELSIUS_LED = 2, FAHRENHEIT_LED = 3;
-const PERCENT_LED = 90;
 
 function makeDigit() {
   const d = document.createElement('div');
@@ -191,20 +201,28 @@ async function poll() {
 
     const cpuOn = (d.leds[CPU_IND] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
     const gpuOn = (d.leds[GPU_IND] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
-    const srcColor = cpuOn ? [0,255,255] : (gpuOn ? [255,255,255] : [50,50,70]);
     
-    sourceLabel.textContent = cpuOn ? 'CPU' : (gpuOn ? 'GPU' : '');
-    sourceLabel.style.color = cpuOn || gpuOn ? `rgb(${srcColor[0]},${srcColor[1]},${srcColor[2]})` : 'rgba(50,50,70,1)';
+    // Source label logic
+    if (cpuOn) {
+      sourceLabel.textContent = 'CPU';
+      sourceLabel.style.color = '#00ffff';
+    } else if (gpuOn) {
+      sourceLabel.textContent = 'GPU';
+      sourceLabel.style.color = '#ffffff';
+    } else {
+      sourceLabel.textContent = 'CPU';
+      sourceLabel.style.color = '#ffffff';
+    }
 
     // Display raw values
     const tempVal = d.values?.temp;
     const wattVal = d.values?.watt;
     const mhzVal = d.values?.mhz;
     const useVal = d.values?.use;
-    document.getElementById('temp-value').textContent = tempVal != null ? tempVal.toFixed(1) + '°' : '';
-    document.getElementById('watt-value').textContent = wattVal != null ? wattVal.toFixed(1) + 'W' : '';
-    document.getElementById('mhz-value').textContent = mhzVal != null ? mhzVal.toFixed(0) + 'MHz' : '';
-    document.getElementById('use-value').textContent = useVal != null ? useVal.toFixed(1) + '%' : '';
+    document.getElementById('temp-value').textContent = tempVal != null ? tempVal.toFixed(1) : '';
+    document.getElementById('watt-value').textContent = wattVal != null ? wattVal.toFixed(1) : '';
+    document.getElementById('mhz-value').textContent = mhzVal != null ? mhzVal.toFixed(0) : '';
+    document.getElementById('use-value').textContent = useVal != null ? useVal.toFixed(1) : '';
 
     const celsiusOn = (d.leds[CELSIUS_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
     const fahrenheitOn = (d.leds[FAHRENHEIT_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;

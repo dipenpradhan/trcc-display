@@ -564,7 +564,7 @@ async fn ui_responsive_layout() {
     assert_eq!(status, StatusCode::OK);
 
     // Verify responsive CSS
-    assert!(body.contains("@media(max-width:700px)"), "mobile responsive styles missing");
+    assert!(body.contains("@media(max-width:600px)"), "mobile responsive styles missing");
     assert!(body.contains("grid-template-columns:1fr"), "grid layout missing");
 }
 

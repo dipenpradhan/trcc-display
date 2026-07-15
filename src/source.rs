@@ -16,7 +16,7 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use crate::config::Config;
 use crate::prometheus::PromClient;
@@ -58,9 +58,9 @@ pub enum Source {
 /// Each tile gets a deterministic pseudo-random walk from a fixed seed,
 /// so values change smoothly and reproducibly.
 #[derive(Debug)]
-struct SimulatorState {
+pub struct SimulatorState {
     /// Monotonic step counter, incremented each fetch.
-    step: AtomicU64,
+    pub step: AtomicU64,
     /// When the simulator was created.
     start: Instant,
 }
@@ -82,12 +82,34 @@ impl SimulatorState {
         let elapsed = self.start.elapsed();
         // Seed from tile name hash for deterministic but varied values.
         let seed = tile_name.as_bytes().iter().fold(0u64, |h, b| h.wrapping_mul(31) + *b as u64);
-        // Smooth walk: base + sine component (varies over time) + step noise.
+        
         let t = elapsed.as_secs_f64();
-        let base = (seed % 100) as f64;
-        let oscillation = ((t * 0.1 + seed as f64 * 0.01).sin() * 20.0).abs();
-        let jitter = ((step.wrapping_mul(7) + seed).wrapping_mul(13) % 100) as f64 * 0.1;
-        (base + oscillation + jitter).min(199.0)
+        // oscillation: slow wave (0.1Hz)
+        let oscillation_factor = (t * 0.1).sin() * 0.5 + 0.5; // 0.0 to 1.0
+        // jitter: fast noise
+        let jitter = ((step.wrapping_mul(7) + seed).wrapping_mul(13) % 100) as f64 / 100.0;
+
+        if tile_name.contains("mhz") {
+            // MHz range: 1000 - 4500 (Range 3500)
+            let base = 1000.0;
+            let range = 3500.0;
+            base + (range * oscillation_factor) + (range * 0.05 * jitter)
+        } else if tile_name.contains("watt") {
+            // Watt range: 50 - 1500 (Range 1450)
+            let base = 50.0;
+            let range = 1450.0;
+            base + (range * oscillation_factor) + (range * 0.05 * jitter)
+        } else if tile_name.contains("use") {
+            // Use range: 0 - 100 (Range 100)
+            let base = 0.0;
+            let range = 100.0;
+            base + (range * oscillation_factor) + (range * 0.05 * jitter)
+        } else {
+            // Temp range: 30 - 105 (Range 75)
+            let base = 30.0;
+            let range = 75.0;
+            base + (range * oscillation_factor) + (range * 0.05 * jitter)
+        }
     }
 }
 
