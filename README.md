@@ -20,7 +20,7 @@ the binary). Values come from **Prometheus** or the local **`sensors -j`**
 
 <p align="center">
   <img src="docs/assets/preview-dashboard.gif" width="45%" alt="Web Preview Dashboard" />
-  <img src="docs/assets/display-small.gif" width="45%" alt="Small Display Preview" />
+  <img src="docs/assets/real-display.gif" width="45%" alt="Real Display Preview" />
 </p>
 
 - **Two metric sources** — Prometheus (PromQL) or `sensors -j` (fully local, no
