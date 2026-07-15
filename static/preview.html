@@ -20,14 +20,13 @@ header h1{font-size:1.5rem;font-weight:700;color:var(--accent);letter-spacing:-.
 .meta{font-size:.85rem;color:var(--text-dim);font-variant-numeric:tabular-nums}
 
 /* ── 2x2 display grid ─────────────────────────────────────── */
-.display-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;max-width:900px;width:100%}
-.zone{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;flex-wrap:wrap}
-.zone-label{font-size:.8rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;min-width:52px}
+.display-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:720px;width:100%}
+.zone{position:relative;display:flex;align-items:center;justify-content:flex-end;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;flex-wrap:wrap}
 .raw-value{font-size:.85rem;font-weight:600;color:var(--text);margin-left:8px;font-variant-numeric:tabular-nums;min-width:60px;text-align:right}
 
 /* ── 7-segment digit ──────────────────────────────────────── */
 .digit{position:relative;width:48px;height:80px;display:inline-block;margin:0 2px}
-.seg{position:absolute;background:rgba(20,20,30,0.8);transition:background .15s}
+.seg{position:absolute;background:rgba(50,50,70,1);transition:background .15s}
 
 /* Horizontal segments (a, g, d) */
 .s-a,.s-g,.s-d{height:6px;width:36px;left:6px;border-radius:3px}
@@ -42,14 +41,14 @@ header h1{font-size:1.5rem;font-weight:700;color:var(--accent);letter-spacing:-.
 .s-b,.s-c{right:6px}
 
 .digits{display:inline-flex;gap:0}
-.unit{font-size:1rem;font-weight:700;color:var(--text-dim);min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+.unit{font-size:1rem;font-weight:700;color:var(--text);min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
 
 /* Partial "1" bars (hundreds indicator for use zone) */
-.partial-bars{display:flex;flex-direction:column;gap:3px;margin-right:8px}
-.partial-bar{width:4px;height:14px;background:rgba(20,20,30,0.8);border-radius:2px;transition:background .2s}
+.partial-bars{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;height:80px;margin-right:8px}
+.partial-bar{width:6px;height:32px;background:rgba(50,50,70,1);border-radius:3px;transition:background .2s}
 
-/* Source indicator (CPU/GPU dot) */
-.source-dot{width:10px;height:10px;border-radius:50%;background:rgba(20,20,30,0.8);transition:background .2s}
+/* Source indicator (CPU/GPU text) */
+.source-label{position:absolute;top:8px;left:12px;font-size:0.75rem;font-weight:800;color:rgba(50,50,70,1);text-transform:uppercase;letter-spacing:0.05em;transition:color .2s}
 
 @media(max-width:700px){
   .display-grid{grid-template-columns:1fr;gap:16px}
@@ -77,28 +76,24 @@ header h1{font-size:1.5rem;font-weight:700;color:var(--accent);letter-spacing:-.
 <div class="display-grid" id="grid">
   <!-- Row 1: temp | watts -->
   <div class="zone">
-    <span class="source-dot" id="source-dot"></span>
-    <span class="zone-label">TEMP</span>
+    <span class="source-label" id="source-label"></span>
     <span class="digits" id="temp-digits"></span>
     <span class="unit" id="temp-unit"></span>
     <span class="raw-value" id="temp-value"></span>
   </div>
   <div class="zone">
-    <span class="zone-label">WATT</span>
     <span class="digits" id="watt-digits"></span>
     <span class="unit">W</span>
     <span class="raw-value" id="watt-value"></span>
   </div>
   <!-- Row 2: mhz | % -->
   <div class="zone">
-    <span class="zone-label">MHZ</span>
     <span class="digits" id="mhz-digits"></span>
     <span class="unit">MHz</span>
     <span class="raw-value" id="mhz-value"></span>
   </div>
   <div class="zone">
     <span class="partial-bars" id="partial-bars"></span>
-    <span class="zone-label">USE</span>
     <span class="digits" id="use-digits"></span>
     <span class="unit" id="use-unit"></span>
     <span class="raw-value" id="use-value"></span>
@@ -109,10 +104,10 @@ header h1{font-size:1.5rem;font-weight:700;color:var(--accent);letter-spacing:-.
 (() => { 'use strict';
 
 const statusEl  = document.getElementById('status');
-const metaEl    = document.getElementById('meta');
-const sourceDot = document.getElementById('source-dot');
+const sourceLabel = document.getElementById('source-label');
 const tempUnit  = document.getElementById('temp-unit');
 const useUnit   = document.getElementById('use-unit');
+const metaEl    = document.getElementById('meta');
 
 let lastGen = 0;
 let segEls  = { temp: [], watt: [], mhz: [], use: [] };
@@ -162,7 +157,7 @@ function renderZone(zoneKey, ledLists, frame) {
     for (let si = 0; si < 7; si++) {
       const c = frame[ledIdxs[si]] || [0,0,0];
       const lit = c[0] + c[1] + c[2] > 0;
-      digit[si].style.background = lit ? `rgb(${c[0]},${c[1]},${c[2]})` : 'rgba(20,20,30,0.8)';
+      digit[si].style.background = lit ? `rgb(${c[0]},${c[1]},${c[2]})` : 'rgba(50,50,70,1)';
       digit[si].classList.toggle('on', lit);
     }
   }
@@ -172,7 +167,7 @@ function renderPartial(frame) {
   for (let i = 0; i < PARTIAL_LEDS.length && i < partialEls.length; i++) {
     const c = frame[PARTIAL_LEDS[i]] || [0,0,0];
     const lit = c[0] + c[1] + c[2] > 0;
-    partialEls[i].style.background = lit ? `rgb(${c[0]},${c[1]},${c[2]})` : 'rgba(20,20,30,0.8)';
+    partialEls[i].style.background = lit ? `rgb(${c[0]},${c[1]},${c[2]})` : 'rgba(50,50,70,1)';
     partialEls[i].classList.toggle('on', lit);
   }
 }
@@ -196,9 +191,10 @@ async function poll() {
 
     const cpuOn = (d.leds[CPU_IND] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
     const gpuOn = (d.leds[GPU_IND] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
-    const srcColor = cpuOn ? [0,200,120] : (gpuOn ? [130,130,220] : [0,0,0]);
-    sourceDot.style.background = `rgb(${srcColor[0]},${srcColor[1]},${srcColor[2]})`;
-    sourceDot.classList.toggle('on', srcColor[0] + srcColor[1] + srcColor[2] > 0);
+    const srcColor = cpuOn ? [0,255,255] : (gpuOn ? [255,255,255] : [50,50,70]);
+    
+    sourceLabel.textContent = cpuOn ? 'CPU' : (gpuOn ? 'GPU' : '');
+    sourceLabel.style.color = cpuOn || gpuOn ? `rgb(${srcColor[0]},${srcColor[1]},${srcColor[2]})` : 'rgba(50,50,70,1)';
 
     // Display raw values
     const tempVal = d.values?.temp;
@@ -214,7 +210,7 @@ async function poll() {
     const fahrenheitOn = (d.leds[FAHRENHEIT_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
     tempUnit.textContent = celsiusOn ? '°C' : (fahrenheitOn ? '°F' : '');
 
-    const percentOn = (d.leds[PERCENT_LED] || [0,0,0]).reduce((a,b) => a + b, 0) > 0;
+    const percentOn = useVal != null;
     useUnit.textContent = percentOn ? '%' : '';
 
     statusEl.className = 'status connected';
