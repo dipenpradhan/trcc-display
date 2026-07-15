@@ -23,29 +23,22 @@ the binary). Values come from **Prometheus** or the local **`sensors -j`**
   <img src="docs/assets/real-display.gif" width="45%" alt="Real Display Preview" />
 </p>
 
-- **Two metric sources** — Prometheus (PromQL) or `sensors -j` (fully local, no
-  network). Selectable in config.
-- **Headless or REST** — run as a silent daemon, or expose an HTTP control
-  surface to set values, push raw frames, blank the screen, or hot-reload config.
-- **Live web preview** — optional embedded dashboard at `/preview` that mirrors
-  the display in real time (7-segment digits, real RGB colours, zero external
-  dependencies).
-- **Data-driven device profiles** — LED geometry (digit maps, unit markers, wire
-  remap) lives in JSON; add a new cooler without touching Rust.
-- **Robust USB** — auto-detect, reconnect on unplug, and a probe cache for the
-  "handshake answers only once per power cycle" firmware quirk.
-- **Strict quality bar** — `unsafe` forbidden, `clippy` denied, extensive unit +
-  integration tests.
-- **Runs anywhere** — native binary, `systemd` unit, or Docker with a mapped USB
-  device. The vendored-libusb binary built on one Debian host runs on another.
+- **Three metric sources** — Prometheus (PromQL), `sensors -j` (local lm-sensors), or a built-in `Simulator` for testing without hardware.
+- **Headless or REST** — run as a silent daemon, or expose an HTTP control surface to set values, push raw frames, blank the screen, or hot-reload config.
+- **Live web preview** — optional embedded dashboard at `/` that mirrors the display in real time (7-segment digits, real RGB colours, zero external dependencies).
+- **Data-driven device profiles** — LED geometry (digit maps, unit markers, wire remap) lives in JSON; add a new cooler without touching Rust.
+- **Robust USB** — auto-detect, reconnect on unplug, and a probe cache for the "handshake answers only once per power cycle" firmware quirk.
+- **Strict quality bar** — `unsafe` forbidden, `clippy` denied, extensive unit + integration tests.
+- **Runs anywhere** — native binary, `systemd` unit, or Docker with a mapped USB device. Statically links `libusb` for maximum portability.
 
 ## How it works
 
 ```text
   metric source ──▶ engine ──▶ render ──▶ protocol ──▶ usb worker ──▶ cooler
   (prometheus |     (loop +    (7-seg     (packet      (libusb, own
-   sensors -j)      overrides)  digits)    framing)     thread)
-        ▲                              │
+   sensors -j |      overrides)  digits)    framing)     thread)
+   simulator)           │
+        ▲              │
    REST API (optional) sets     live web preview polls
    overrides / raw frames       the latest frame
 ```
@@ -66,13 +59,6 @@ cargo build --release
 ./target/release/trcc-display --help
 ```
 
-### Find and identify your display
-
-```bash
-trcc-display detect        # is the USB device visible?
-trcc-display probe         # handshake → PM byte → which profile it maps to
-```
-
 ### Run it
 
 ```bash
@@ -82,7 +68,7 @@ trcc-display --config config/config.json run
 # Fully local: read `sensors -j`, no Prometheus, no API:
 trcc-display --config config/config.sensors.json run
 
-# With live web preview (open http://localhost:9110/preview):
+# With live web preview (open http://localhost:9110/):
 trcc-display --config config/config.json run
 # (set "api": { "preview_enabled": true } in config)
 ```
