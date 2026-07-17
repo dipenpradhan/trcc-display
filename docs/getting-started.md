@@ -115,7 +115,7 @@ curl -XPOST localhost:9110/display/value \
   -d '{"slot":"main","value":42,"unit":"celsius","ttl_seconds":30}'
 
 # Live web preview (set "preview_enabled": true in config)
-# Open http://localhost:9110/preview in a browser
+# Open http://localhost:9110/ in a browser
 ```
 
 ## Next steps

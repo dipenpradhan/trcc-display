@@ -6,7 +6,7 @@
 //! # Design
 //!
 //! * Embedded HTML (CSS + JS inlined) served via `include_str!`.
-//! * Single polling endpoint `GET /preview/frame` returns the latest
+//! * Single polling endpoint `GET /frame` returns the latest
 //!   [`PreviewFrame`][crate::state::PreviewFrame] from shared state.
 //! * No WebSocket — polling at 4Hz is sufficient for a diagnostic preview.
 //! * No new dependencies — uses existing axum + serde.
@@ -38,12 +38,12 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// GET /preview — serve the self-contained HTML dashboard.
+/// GET / — serve the self-contained HTML dashboard.
 async fn serve_page() -> Html<&'static str> {
     Html(PREVIEW_HTML)
 }
 
-/// GET /preview/frame — return the latest rendered frame as JSON.
+/// GET /frame — return the latest rendered frame as JSON.
 ///
 /// Returns 503 if no frame has been rendered yet (device not identified).
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -77,7 +77,7 @@ pub struct Shared {
 /// A rendered frame snapshot, serializable for the REST preview endpoint.
 ///
 /// Stored in [`Shared`] after each engine render cycle. The web preview page
-/// polls this via `GET /preview/frame`.
+/// polls this via `GET /frame`.
 #[derive(Debug, Clone, Serialize)]
 pub struct PreviewFrame {
     /// Monotonic counter incremented each frame; clients skip re-renders

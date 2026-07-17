@@ -182,7 +182,7 @@ When `api.preview_enabled:true`, an extra set of routes is served under `/`:
 | `GET  /`             | Self-contained HTML dashboard (7-segment digits, real RGB colours). |
 | `GET  /frame`        | JSON: `{ generation, profile, leds: [[r,g,b], …] }` |
 
-The page polls `/preview/frame` at 4 Hz and renders the same 7-segment layout
+The page polls `/frame` at 4 Hz and renders the same 7-segment layout
 the cooler displays. Zero external dependencies — the HTML/CSS/JS is embedded
 at compile time.
 

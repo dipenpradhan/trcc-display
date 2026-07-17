@@ -99,11 +99,11 @@ All configuration is a single JSON file. Unknown keys are silently ignored, so y
 |-----|------|---------|-------------|
 | `enabled` | `bool` | `true` | Set `false` for headless mode |
 | `bind` | `string` | `"0.0.0.0:9110"` | Listen address |
-| `preview_enabled` | `bool` | `false` | Serve a live LED preview at `/preview` |
+| `preview_enabled` | `bool` | `false` | Serve a live LED preview at `/` |
 
-When `preview_enabled: true`, the `/preview` routes are added to the API router.
+When `preview_enabled: true`, the `/` routes are added to the API router.
 The dashboard is self-contained (embedded HTML/CSS/JS, zero external requests)
-and polls `/preview/frame` at 4 Hz. See [API reference](api-reference.md#live-web-preview).
+and polls `/frame` at 4 Hz. See [API reference](api-reference.md#live-web-preview).
 
 ## Render settings
 

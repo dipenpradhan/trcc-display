@@ -19,20 +19,20 @@ Default bind: `0.0.0.0:9110`
 
 ### Live web preview
 
-When `api.preview_enabled: true`, an extra set of routes is served under `/preview`:
+When `api.preview_enabled: true`, an extra set of routes is served under `/`:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/preview` | Self-contained HTML dashboard |
-| `GET` | `/preview/frame` | Latest rendered frame as JSON |
+| `GET` | `/` | Self-contained HTML dashboard |
+| `GET` | `/frame` | Latest rendered frame as JSON |
 
-#### GET /preview
+#### GET /
 
-Serves an embedded HTML page that polls `/preview/frame` and renders the display
+Serves an embedded HTML page that polls `/frame` and renders the display
 as 7-segment digits with real RGB colours. No external dependencies — the page
 is self-contained (CSS + JS inlined).
 
-#### GET /preview/frame
+#### GET /frame
 
 Returns the latest rendered frame snapshot:
 

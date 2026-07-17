@@ -127,7 +127,7 @@ pub struct ApiCfg {
     /// Bind address (default: `0.0.0.0:9110`).
     #[serde(default = "default_bind")]
     pub bind: String,
-    /// When `true`, serves a live LED preview page at `/preview`.
+    /// When `true`, serves a live LED preview page at `/`.
     #[serde(default)]
     pub preview_enabled: bool,
 }
