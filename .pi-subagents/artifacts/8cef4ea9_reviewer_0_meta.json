@@ -1,0 +1,127 @@
+{
+  "runId": "8cef4ea9",
+  "agent": "reviewer",
+  "task": "Review the README.md file for the `trcc-display` Rust project at `/workspace/trcc-display/README.md`.\n\nEvaluate it from the perspective of a potential user or technical lead. Specifically check for:\n1. **Clarity & Readability**: Is the project's purpose immediately obvious? Are the instructions easy to follow?\n2. **Accuracy**: Do the commands, URLs, and descriptions match the likely state of a professional Rust CLI project?\n3. **Completeness**: Is there anything critical missing for someone trying to use or contribute to the project (e.g., installation, config examples, links to docs)?\n4. **Formatting**: Does the markdown look clean and professional?\n\nProvide a bulleted list of \"Pros\" and \"Cons/Suggestions\".",
+  "exitCode": 0,
+  "usage": {
+    "input": 126153,
+    "output": 4129,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "cost": 0,
+    "turns": 11
+  },
+  "model": "llama-swap/qwen3.6-27b-nvfp4-200k:high",
+  "attemptedModels": [
+    "llama-swap/qwen3.6-27b-nvfp4-200k:high"
+  ],
+  "modelAttempts": [
+    {
+      "model": "llama-swap/qwen3.6-27b-nvfp4-200k:high",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 126153,
+        "output": 4129,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "cost": 0,
+        "turns": 11
+      }
+    }
+  ],
+  "durationMs": 110449,
+  "toolCount": 30,
+  "acceptance": {
+    "status": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "Concrete findings returned with file paths (README.md ~line 78 preview URL bug, README.md CLI section suggestions) and severity ratings (Medium, Low). All claims verified against actual project files: Cargo.toml, config/config.json, config/config.sensors.json, src/api.rs, src/preview.rs, src/config.rs, .github/workflows/ci.yml, .github/workflows/release.yml, Dockerfile, docker-compose.yml, packaging/systemd/trcc-display.service, CLI --help output."
+        }
+      ],
+      "changedFiles": [],
+      "testsAddedOrUpdated": [],
+      "commandsRun": [
+        {
+          "command": "cargo build --release",
+          "result": "passed",
+          "summary": "Project builds successfully on Rust stable (edition 2024)"
+        },
+        {
+          "command": "./target/release/trcc-display --help",
+          "result": "passed",
+          "summary": "CLI help matches README CLI section"
+        },
+        {
+          "command": "./target/release/trcc-display --version",
+          "result": "passed",
+          "summary": "Version 0.1.0"
+        }
+      ],
+      "validationOutput": [
+        "README preview URL bug confirmed: Quick Start says localhost:9110/ but actual preview is at /preview (verified in src/config.rs:130, src/api.rs:77, src/preview.rs:41)",
+        "All referenced config files exist and contain documented keys",
+        "CI/release workflows match documented jobs",
+        "CLI subcommands match documented help text"
+      ],
+      "residualRisks": [
+        "none"
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "No changes made. Read-only review.",
+      "reviewFindings": [
+        "medium: README.md ~line 78 - Wrong preview URL in Quick Start: 'open http://localhost:9110/' should be 'open http://localhost:9110/preview' (confirmed by src/config.rs:130 and src/preview.rs:41)",
+        "low: README.md - No installation instructions for downloading pre-built release binaries from GitHub Releases",
+        "low: README.md CLI section - render example could explicitly include --config flag for clarity",
+        "low: README.md CLI section - test-pattern example omits --color and --delay-ms options"
+      ],
+      "manualNotes": "The README is a strong, professional document. The preview URL bug is the only substantive issue. The rest are polish suggestions. The document accurately reflects the codebase across all major sections."
+    }
+  },
+  "transcriptPath": "/workspace/trcc-display/.pi-subagents/artifacts/8cef4ea9_reviewer_0_transcript.jsonl",
+  "timestamp": 1784195618053
+}

@@ -1,0 +1,90 @@
+{
+  "runId": "89bef89b",
+  "agent": "reviewer",
+  "task": "Review the README.md file at /workspace/trcc-display/README.md for a Rust CLI project. Check for technical accuracy, clarity, formatting, and completeness. Pay special attention to:\n- Are the commands and examples actually correct for a Rust CLI tool?\n- Is the architecture diagram accurate?\n- Are the feature descriptions clear and compelling?\n- Any typos or broken links?\n- Overall impression of a potential user reading this.",
+  "exitCode": 1,
+  "usage": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "cost": 0,
+    "turns": 0
+  },
+  "model": "llama-swap/qwen3.6-27b-nvfp4-200k:high",
+  "attemptedModels": [
+    "llama-swap/qwen3.6-27b-nvfp4-200k:high"
+  ],
+  "modelAttempts": [
+    {
+      "model": "llama-swap/qwen3.6-27b-nvfp4-200k:high",
+      "success": false,
+      "exitCode": 1,
+      "error": "spawn pi ENOENT",
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "cost": 0,
+        "turns": 0
+      }
+    }
+  ],
+  "durationMs": 6,
+  "toolCount": 0,
+  "error": "spawn pi ENOENT",
+  "acceptance": {
+    "status": "rejected",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [
+      {
+        "id": "attestation",
+        "status": "failed",
+        "message": "Structured acceptance report not found."
+      }
+    ],
+    "verifyRuns": [],
+    "childReportParseError": "Structured acceptance report not found."
+  },
+  "transcriptPath": "/workspace/trcc-display/.pi-subagents/artifacts/89bef89b_reviewer_0_transcript.jsonl",
+  "timestamp": 1784195070705
+}

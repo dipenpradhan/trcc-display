@@ -79,6 +79,22 @@ trcc-display --config config/config.json run
 docker compose up -d --build   # maps /dev/bus/usb into the container
 ```
 
+### Install a release binary
+
+Download pre-built binaries from [GitHub Releases](https://github.com/dipenpradhan/trcc-display/releases).
+
+```bash
+# x86_64 Linux (statically linked, no system libusb needed)
+tar xzf trcc-display-x86_64-linux.tar.gz
+cp trcc-display /usr/local/bin/
+
+# aarch64 Linux (Raspberry Pi, etc.)
+tar xzf trcc-display-aarch64-linux.tar.gz
+cp trcc-display /usr/local/bin/
+```
+
+Verify: `trcc-display --help`
+
 ---
 
 ## Configuration (`config.json`)
@@ -97,7 +113,7 @@ document itself.
 | `prometheus` | `url` / `timeout_seconds` | Prometheus base URL. |
 | `api`        | `enabled`          | Set `false` for a headless daemon (no HTTP listener). |
 |              | `bind`             | Bind address (default `0.0.0.0:9110`). |
-|              | `preview_enabled`  | When `true`, serves a live LED preview at `/preview`. |
+|              | `preview_enabled`  | When `true`, serves a live LED preview at `/`. |
 | `render`     | `refresh_seconds`  | How often to re-query the source. |
 |              | `rotate_seconds`   | When several tiles share a slot, seconds per tile. |
 |              | `tick_ms`          | Frame cadence. |
@@ -159,13 +175,12 @@ Enabled when `api.enabled:true` (default bind `0.0.0.0:9110`).
 
 ### Live web preview
 
-When `api.preview_enabled:true`, an extra set of routes is served under
-`/preview`:
+When `api.preview_enabled:true`, an extra set of routes is served under `/`:
 
 | Method & path        | Effect |
 |----------------------|--------|
-| `GET  /preview`      | Self-contained HTML dashboard (7-segment digits, real RGB colours). |
-| `GET  /preview/frame`| JSON: `{ generation, profile, leds: [[r,g,b], …] }` |
+| `GET  /`             | Self-contained HTML dashboard (7-segment digits, real RGB colours). |
+| `GET  /frame`        | JSON: `{ generation, profile, leds: [[r,g,b], …] }` |
 
 The page polls `/preview/frame` at 4 Hz and renders the same 7-segment layout
 the cooler displays. Zero external dependencies — the HTML/CSS/JS is embedded
@@ -187,8 +202,8 @@ trcc-display [--config <path>] [-v|-vv] <command>
   detect         List connected devices matching the USB VID/PID.
   probe          Handshake and print identity + resolved profile.
   once           Fetch metrics once, render a single frame, exit.
-  render         Render one explicit value:  --slot gpu_temp --value 63 --unit celsius --color 255,60,60
-  test-pattern   Map the LEDs:  --mode walk|all  (walk lights one LED at a time)
+  render         Render one explicit value: --config config/config.json --slot gpu_temp --value 63 --unit celsius --color 255,60,60
+  test-pattern   Map the LEDs: --mode walk|all --color r,g,b --delay-ms N (walk lights one LED at a time)
 ```
 
 `-v` = debug, `-vv` = trace; `RUST_LOG` overrides. Errors print the full context

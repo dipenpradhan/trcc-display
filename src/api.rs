@@ -74,7 +74,7 @@ impl std::fmt::Debug for AppState {
 /// # Arguments
 ///
 /// * `state` — shared application state.
-/// * `preview_enabled` — when `true`, nests the live preview under `/preview`.
+/// * `preview_enabled` — when `true`, nests the live preview under `/`.
 pub fn router(state: AppState, preview_enabled: bool) -> Router {
     let mut r = Router::new()
         .route("/health", get(|| async { "ok" }))
